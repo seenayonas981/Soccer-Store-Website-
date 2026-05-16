@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Soccer Store</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 20px;
+            display: block;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #007bff;
+        }
+        .sidebar a.active {
+            background-color: #007bff;
+        }
+        .content {
+            padding: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 2rem;
+            margin: 0;
+            color: #007bff;
+        }
+        .table-actions button {
+            margin: 0 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 p-0 sidebar">
+                <div class="text-center py-3">
+                    <h4 class="text-white">⚽ Soccer Store</h4>
+                    <p class="text-white-50">Admin Panel</p>
+                </div>
+                <nav>
+                    <a href="#" onclick="showSection('dashboard'); return false;" class="active" id="nav-dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="#" onclick="showSection('products'); return false;" id="nav-products">
+                        <i class="bi bi-box"></i> Products
+                    </a>
+                    <a href="#" onclick="showSection('orders'); return false;" id="nav-orders">
+                        <i class="bi bi-cart"></i> Orders
+                    </a>
+                    <a href="#" onclick="showSection('customers'); return false;" id="nav-customers">
+                        <i class="bi bi-people"></i> Customers
+                    </a>
+                    <a href="#" onclick="logout(); return false;" id="nav-logout">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 content">
+                <div id="dashboardSection">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading dashboard...</p>
+                    </div>
+                </div>
+                <div id="productsSection" style="display: none;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading products...</p>
+                    </div>
+                </div>
+                <div id="ordersSection" style="display: none;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading orders...</p>
+                    </div>
+                </div>
+                <div id="customersSection" style="display: none;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading customers...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalTitle">Add Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <input type="hidden" id="productId">
+                        <div class="mb-3">
+                            <label>Product Name</label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Description</label>
+                            <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label>Price</label>
+                            <input type="number" step="0.01" class="form-control" id="productPrice" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Stock Quantity</label>
+                            <input type="number" class="form-control" id="productStock" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Category</label>
+                            <select class="form-control" id="productCategory" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Image URL</label>
+                            <input type="text" class="form-control" id="productImage">
+                        </div>
+                        <div class="mb-3">
+                            <label>Active</label>
+                            <select class="form-control" id="productActive">
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:3000';
+        let currentAdmin = null;
+        let categories = [];
+
+        // Check if admin is logged in - FIXED to use currentCustomer
+        function checkAdminLogin() {
+            // Try to get admin from currentAdmin first, then from currentCustomer
+            const savedAdmin = localStorage.getItem('currentAdmin');
+            const savedCustomer = localStorage.getItem('currentCustomer');
+            
+            if (savedAdmin) {
+                currentAdmin = JSON.parse(savedAdmin);
+                if (currentAdmin.Email === 'admin@example.com') {
+                    loadDashboard();
+                    return;
+                }
+            }
+            
+            if (savedCustomer) {
+                const customer = JSON.parse(savedCustomer);
+                if (customer.Email === 'admin@example.com') {
+                    currentAdmin = customer;
+                    localStorage.setItem('currentAdmin', JSON.stringify(customer));
+                    loadDashboard();
+                    return;
+                }
+            }
+            
+            // Not logged in as admin - redirect to store
+            window.location.href = '/soccer-store.html';
+        }
+
+        // Show different sections
+        function showSection(section) {
+            document.getElementById('dashboardSection').style.display = 'none';
+            document.getElementById('productsSection').style.display = 'none';
+            document.getElementById('ordersSection').style.display = 'none';
+            document.getElementById('customersSection').style.display = 'none';
+            
+            document.getElementById(section + 'Section').style.display = 'block';
+            
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            document.getElementById('nav-' + section).classList.add('active');
+            
+            if (section === 'dashboard') loadDashboard();
+            if (section === 'products') loadProducts();
+            if (section === 'orders') loadOrders();
+            if (section === 'customers') loadCustomers();
+        }
+
+        // Load Dashboard
+        async function loadDashboard() {
+            try {
+                const productsRes = await fetch(`${API_URL}/api/products`);
+                const products = await productsRes.json();
+                
+                const ordersRes = await fetch(`${API_URL}/api/orders`);
+                const orders = await ordersRes.json();
+                
+                const customersRes = await fetch(`${API_URL}/api/customers`);
+                const customers = await customersRes.json();
+                
+                const totalRevenue = orders.reduce((sum, o) => sum + o.TotalAmount, 0);
+                const lowStock = products.filter(p => p.StockQuantity < 20).length;
+                
+                const html = `
+                    <h2>Dashboard</h2>
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-box" style="font-size: 2rem;"></i>
+                                <h3>${products.length}</h3>
+                                <p>Total Products</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-cart" style="font-size: 2rem;"></i>
+                                <h3>${orders.length}</h3>
+                                <p>Total Orders</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-people" style="font-size: 2rem;"></i>
+                                <h3>${customers.length}</h3>
+                                <p>Total Customers</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <i class="bi bi-currency-dollar" style="font-size: 2rem;"></i>
+                                <h3>$${totalRevenue.toFixed(2)}</h3>
+                                <p>Total Revenue</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-warning text-white">
+                                    <h5>⚠️ Low Stock Alerts (Stock < 20)</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${lowStock > 0 ? 
+                                        `<ul>${products.filter(p => p.StockQuantity < 20).map(p => `<li>${p.ProductName}: ${p.StockQuantity} left</li>`).join('')}</ul>` : 
+                                        '<p>All products have sufficient stock!</p>'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h5>📦 Recent Orders</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul>
+                                        ${orders.slice(0, 5).map(o => `<li>Order #${o.OrderID} - $${o.TotalAmount} - ${o.Status}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('dashboardSection').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('dashboardSection').innerHTML = '<div class="alert alert-danger">Error loading dashboard. Make sure API is running.</div>';
+            }
+        }
+
+        // Load Products
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_URL}/api/products`);
+                const products = await response.json();
+                
+                const catRes = await fetch(`${API_URL}/api/categories`);
+                categories = await catRes.json();
+                
+                let html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Products</h2>
+                        <button class="btn btn-primary" onclick="openProductModal()">
+                            <i class="bi bi-plus-circle"></i> Add Product
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                for (const product of products) {
+                    const category = categories.find(c => c.CategoryID === product.CategoryID);
+                    html += `
+                        <tr>
+                            <td>${product.ProductID}</td>
+                            <td>${product.ImageURL ? `<img src="${product.ImageURL}" style="height: 40px; width: 40px; object-fit: cover;">` : '⚽'}</td>
+                            <td>${product.ProductName}</td>
+                            <td>$${product.Price}</td>
+                            <td class="${product.StockQuantity < 20 ? 'text-danger fw-bold' : ''}">${product.StockQuantity}</td>
+                            <td>${category ? category.CategoryName : 'Unknown'}</td>
+                            <td><span class="badge ${product.IsActive ? 'bg-success' : 'bg-secondary'}">${product.IsActive ? 'Active' : 'Inactive'}</span></td>
+                            <td class="table-actions">
+                                <button class="btn btn-sm btn-warning" onclick="editProduct(${product.ProductID})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.ProductID})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                html += `</tbody></table></div>`;
+                document.getElementById('productsSection').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading products:', error);
+                document.getElementById('productsSection').innerHTML = '<div class="alert alert-danger">Error loading products.</div>';
+            }
+        }
+
+        // Open modal for new product
+        function openProductModal() {
+            document.getElementById('productModalTitle').innerText = 'Add Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            
+            const catSelect = document.getElementById('productCategory');
+            catSelect.innerHTML = categories.map(c => `<option value="${c.CategoryID}">${c.CategoryName}</option>`).join('');
+            
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        // Edit product
+        async function editProduct(id) {
+            const response = await fetch(`${API_URL}/api/products/${id}`);
+            const product = await response.json();
+            
+            document.getElementById('productModalTitle').innerText = 'Edit Product';
+            document.getElementById('productId').value = product.ProductID;
+            document.getElementById('productName').value = product.ProductName;
+            document.getElementById('productDescription').value = product.Description || '';
+            document.getElementById('productPrice').value = product.Price;
+            document.getElementById('productStock').value = product.StockQuantity;
+            document.getElementById('productImage').value = product.ImageURL || '';
+            document.getElementById('productActive').value = product.IsActive ? '1' : '0';
+            
+            const catSelect = document.getElementById('productCategory');
+            catSelect.innerHTML = categories.map(c => `<option value="${c.CategoryID}" ${c.CategoryID === product.CategoryID ? 'selected' : ''}>${c.CategoryName}</option>`).join('');
+            
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+
+        // Save product
+        async function saveProduct() {
+            const id = document.getElementById('productId').value;
+            const productData = {
+                productName: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stockQuantity: parseInt(document.getElementById('productStock').value),
+                categoryId: parseInt(document.getElementById('productCategory').value),
+                imageURL: document.getElementById('productImage').value,
+                isActive: document.getElementById('productActive').value === '1'
+            };
+            
+            try {
+                if (id) {
+                    await fetch(`${API_URL}/api/products/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData)
+                    });
+                    alert('Product updated successfully!');
+                } else {
+                    await fetch(`${API_URL}/api/products`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData)
+                    });
+                    alert('Product added successfully!');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+                loadProducts();
+                loadDashboard();
+            } catch (error) {
+                console.error('Error saving product:', error);
+                alert('Error saving product');
+            }
+        }
+
+        // Delete product
+        async function deleteProduct(id) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                try {
+                    await fetch(`${API_URL}/api/products/${id}`, { method: 'DELETE' });
+                    alert('Product deleted successfully!');
+                    loadProducts();
+                    loadDashboard();
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    alert('Error deleting product');
+                }
+            }
+        }
+
+        // Load Orders
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/api/orders`);
+                const orders = await response.json();
+                
+                let html = `<h2>Orders</h2>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                for (const order of orders) {
+                    html += `
+                        <tr>
+                            <td>#${order.OrderID}</td>
+                            <td>${order.CustomerFirstName} ${order.CustomerLastName}</td>
+                            <td>${new Date(order.OrderDate).toLocaleDateString()}</td>
+                            <td>$${order.TotalAmount}</td>
+                            <td>
+                                <select class="form-select form-select-sm" style="width: 130px;" onchange="updateOrderStatus(${order.OrderID}, this.value)">
+                                    <option value="Processing" ${order.Status === 'Processing' ? 'selected' : ''}>Processing</option>
+                                    <option value="Shipped" ${order.Status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                    <option value="Delivered" ${order.Status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                    <option value="Cancelled" ${order.Status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewOrderDetails(${order.OrderID})">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                html += `</tbody></table></div>`;
+                document.getElementById('ordersSection').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersSection').innerHTML = '<div class="alert alert-danger">Error loading orders.</div>';
+            }
+        }
+
+        // Update order status
+        async function updateOrderStatus(orderId, status) {
+            try {
+                await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: status })
+                });
+                alert('Order status updated!');
+                loadOrders();
+                loadDashboard();
+            } catch (error) {
+                console.error('Error updating order:', error);
+                alert('Error updating order');
+            }
+        }
+
+        // View order details
+        async function viewOrderDetails(orderId) {
+            try {
+                const response = await fetch(`${API_URL}/api/orders/${orderId}`);
+                const order = await response.json();
+                
+                let itemsText = '';
+                if (order.items) {
+                    order.items.forEach(item => {
+                        itemsText += `${item.ProductName} - Quantity: ${item.Quantity} - $${item.UnitPrice}\n`;
+                    });
+                }
+                
+                alert(`Order #${order.OrderID}\nCustomer: ${order.CustomerFirstName} ${order.CustomerLastName}\nDate: ${order.OrderDate}\nTotal: $${order.TotalAmount}\nStatus: ${order.Status}\n\nItems:\n${itemsText}`);
+            } catch (error) {
+                console.error('Error viewing order:', error);
+                alert('Error loading order details');
+            }
+        }
+
+        // Load Customers
+        async function loadCustomers() {
+            try {
+                const response = await fetch(`${API_URL}/api/customers`);
+                const customers = await response.json();
+                
+                let html = `<h2>Customers</h2>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Address</th>
+                                    <th>Registered</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                for (const customer of customers) {
+                    html += `
+                        <tr>
+                            <td>${customer.CustomerID}</td>
+                            <td>${customer.FirstName} ${customer.LastName}</td>
+                            <td>${customer.Email}</td>
+                            <td>${customer.Phone || '-'}</td>
+                            <td>${customer.Address || '-'}</td>
+                            <td>${customer.RegistrationDate ? new Date(customer.RegistrationDate).toLocaleDateString() : '-'}</td>
+                            <td><span class="badge ${customer.IsActive ? 'bg-success' : 'bg-danger'}">${customer.IsActive ? 'Active' : 'Inactive'}</span></td>
+                        </tr>
+                    `;
+                }
+                
+                html += `</tbody></table></div>`;
+                document.getElementById('customersSection').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading customers:', error);
+                document.getElementById('customersSection').innerHTML = '<div class="alert alert-danger">Error loading customers.</div>';
+            }
+        }
+
+        // Logout - clear both admin and customer storage
+        function logout() {
+            localStorage.removeItem('currentAdmin');
+            localStorage.removeItem('currentCustomer');
+            window.location.href = '/soccer-store.html';
+        }
+
+        // Initialize
+        checkAdminLogin();
+    </script>
+</body>
+</html>
